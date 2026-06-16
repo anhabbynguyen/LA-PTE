@@ -872,6 +872,37 @@ function formatDisplayDate(iso) {
   return `${days[dt.getDay()]} ${d}/${m}`;
 }
 
+// Ngày đầy đủ dd/mm/yyyy
+function formatFullDate(iso) {
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+// Lấy số giờ từ Thời Lượng Dự Kiến
+// Google trả duration dạng "Date(1899,11,30,H,M,S)" → lấy phần giờ H
+// Nếu là số thuần hoặc chuỗi "3 tiếng" → tự nhận diện
+function parseDuration(val) {
+  if (val === '' || val === null || val === undefined) return '';
+  // Dạng Date(1899,11,30,H,M,S)
+  if (typeof val === 'string' && val.startsWith('Date(')) {
+    const p = val.slice(5, -1).split(',').map(Number);
+    const h = p[3] || 0, m = p[4] || 0;
+    if (h > 0) return `${h} tiếng`;
+    if (m > 0) return `${m} phút`;
+    return '0 tiếng';
+  }
+  // Số (có thể là phân số của ngày, vd 0.166 = 4 tiếng; hoặc số giờ trực tiếp)
+  if (typeof val === 'number') {
+    // Nếu < 1 coi là phân số của ngày → đổi sang giờ
+    const hours = val < 1 ? Math.round(val * 24) : val;
+    return `${hours} tiếng`;
+  }
+  // Chuỗi có sẵn số
+  const m = String(val).match(/[\d.]+/);
+  return m ? `${m[0]} tiếng` : String(val);
+}
+
 // ──────────────────────────────────────────────
 // POPULATE FILTER DROPDOWNS
 // ──────────────────────────────────────────────
@@ -990,7 +1021,7 @@ function renderPersonal() {
       if (s.platform) html += `<div class="card-meta-row"><span class="icon">📡</span><span>${esc(s.platform)}</span></div>`;
       if (s.studio) html += `<div class="card-meta-row"><span class="icon">🎬</span><span>${esc(s.studio)}</span></div>`;
       if (s.megaStudio) html += `<div class="card-meta-row"><span class="icon">🏢</span><span>${esc(s.megaStudio)}</span></div>`;
-      if (s.thoiLuong) html += `<div class="card-meta-row"><span class="icon">⏱</span><span>${esc(String(s.thoiLuong))} tiếng</span></div>`;
+      if (s.thoiLuong) html += `<div class="card-meta-row"><span class="icon">⏱</span><span>${esc(formatFullDate(s.ngay))}, ${esc(parseDuration(s.thoiLuong))}</span></div>`;
       html += `</div>`;
       html += `<div class="card-badges">`;
       html += statusBadge(s.status);
@@ -1072,7 +1103,7 @@ function renderManager() {
       <td>${r.platform ? `<span class="platform-chip">${esc(r.platform)}</span>` : '—'}</td>
       <td>${esc(r.studio || '—')}</td>
       <td>${esc(r.megaStudio || '—')}</td>
-      <td class="td-mono">${esc(String(r.thoiLuong || '—'))}</td>
+      <td class="td-mono">${esc(parseDuration(r.thoiLuong) || '—')}</td>
       <td>${trangThaiBadge(r.trangThai)}</td>
       <td>${statusBadge(r.status)}</td>
     </tr>`;
